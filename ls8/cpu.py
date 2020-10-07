@@ -3,10 +3,20 @@
 import sys
 # The MAR contains the address that is being read or written to
 # The MDR contains the data that was read or the data to write.
+# R5 is reserved as the interrupt mask (IM)
+# R6 is reserved as the interrupt status (IS)
+# R7 is reserved as the stack pointer (SP)
+# PC: Program Counter, address of the currently executing instruction
+# IR: Instruction Register, contains a copy of the currently executing instruction
+# MAR: Memory Address Register, holds the memory address we're reading or writing
+# MDR: Memory Data Register, holds the value to write or the value just read
+# FL: Flags, see below
 LDI = 0b10000010
 PRN = 0b01000111
 HLT = 0b00000001
 MUL = 0b10100010
+PUSH = 0b01000101
+POP = 0b01000110
 
 
 class CPU:
@@ -18,6 +28,8 @@ class CPU:
         self.pc = 0
         self.reg = [0] * 8
         self.ram = [0] * 256
+        self.reg[7] = 0xFF
+        self.SP = 7  # stack pointer
 
     def load(self, filename):
 
@@ -105,6 +117,18 @@ class CPU:
                 self.reg[reg_a] = self.reg[reg_a] * self.reg[reg_b]
 
                 self.pc += 3
+            elif inst_register == PUSH:
+                self.reg[self.SP] -= 1  # Decrement to SP to push the value
+                registerToValueIn = operand_a
+                valueInThisRegister = self.reg[registerToValueIn]
+                self.ram_write(self.reg[self.SP], valueInThisRegister)
+                self.pc += 2
+            elif inst_register == POP:
+                topValueInStack = self.ram_read(self.reg[self.SP])
+                self.reg[operand_a] = topValueInStack
+                self.reg[self.SP] += 1
+                self.pc += 2
+
             else:
                 sys.exit(1)
 
