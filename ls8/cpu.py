@@ -17,6 +17,9 @@ HLT = 0b00000001
 MUL = 0b10100010
 PUSH = 0b01000101
 POP = 0b01000110
+CALL = 0b01010000
+RET = 0b00010001
+ADD = 0b10100000
 
 
 class CPU:
@@ -93,6 +96,7 @@ class CPU:
     def run(self):
         """Run the CPU."""
         self.running = True
+
         while self.running:
             # self.trace()
             inst_register = self.ram_read(self.pc)
@@ -111,26 +115,45 @@ class CPU:
 
             elif inst_register == HLT:
                 self.running = False
+
             elif inst_register == MUL:
                 reg_a = self.ram_read(self.pc + 1)
                 reg_b = self.ram_read(self.pc + 2)
                 self.reg[reg_a] = self.reg[reg_a] * self.reg[reg_b]
-
                 self.pc += 3
+
             elif inst_register == PUSH:
                 self.reg[self.SP] -= 1  # Decrement to SP to push the value
                 registerToValueIn = operand_a
                 valueInThisRegister = self.reg[registerToValueIn]
                 self.ram_write(self.reg[self.SP], valueInThisRegister)
                 self.pc += 2
+
             elif inst_register == POP:
                 topValueInStack = self.ram_read(self.reg[self.SP])
                 self.reg[operand_a] = topValueInStack
                 self.reg[self.SP] += 1
                 self.pc += 2
 
+            elif inst_register == CALL:
+                self.reg[self.SP] -= 1
+                addressOfNextCommand = self.pc + 2
+                self.ram_write(self.reg[self.SP], addressOfNextCommand)
+                addressToJumpTo = self.reg[operand_a]
+                self.pc = addressToJumpTo
+
+            elif inst_register == RET:
+                addressToReturnTo = self.ram_read(self.reg[self.SP])
+                self.ram_write(self.reg[self.SP], self.reg[self.SP]+1)
+                self.pc = addressToReturnTo
+
+            elif inst_register == ADD:
+                self.reg[operand_a] = self.reg[operand_a] + self.reg[operand_b]
+                self.pc += 3
             else:
                 sys.exit(1)
+
+        self.print_ram()
 
     def ram_read(self, register_address):
 
@@ -139,3 +162,6 @@ class CPU:
     def ram_write(self, register_address, value_to_write):
         self.ram[register_address] = value_to_write
         return self.ram_read(register_address)
+
+    def print_ram(self):
+        print(f'{self.reg}')
